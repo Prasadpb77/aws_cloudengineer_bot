@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS EC2 Management Agent</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 90vh;
+            max-height: 800px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .config-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            padding: 10px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .config-header.hidden {
+            display: none;
+        }
+
+        .config-header:hover {
+            background: #e9ecef;
+        }
+
+        .config-section {
+            background: #f8f9fa;
+            padding: 20px 30px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .config-section.collapsed {
+            display: none;
+        }
+
+        .config-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .config-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .config-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .config-input:disabled {
+            background: #e9ecef;
+            cursor: not-allowed;
+        }
+
+        .config-status {
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 15px;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 30px;
+            background: #fafbfc;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .message.assistant {
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        .message-content {
+            max-width: 75%;
+            padding: 15px 20px;
+            border-radius: 18px;
+            word-wrap: break-word;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.assistant .message-content {
+            background: white;
+            color: #333;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-time {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        .loading {
+            display: flex;
+            gap: 5px;
+            padding: 15px 20px;
+        }
+
+        .loading-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #667eea;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .loading-dot:nth-child(1) { animation-delay: -0.32s; }
+        .loading-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        .input-container {
+            padding: 20px 30px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-field {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 15px;
+            transition: border-color 0.3s;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .send-button {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .send-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .send-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .examples {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .example-chip {
+            padding: 8px 16px;
+            background: white;
+            border: 1px solid #667eea;
+            color: #667eea;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .example-chip:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .welcome-message {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6c757d;
+        }
+
+        .welcome-message h2 {
+            color: #495057;
+            margin-bottom: 10px;
+        }
+
+        .welcome-message p {
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                height: 100vh;
+                max-height: 100vh;
+                border-radius: 0;
+            }
+
+            .message-content {
+                max-width: 85%;
+            }
+
+            .header h1 {
+                font-size: 22px;
+            }
+
+            .examples {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🖥️ AWS EC2 Management Agent</h1>
+            <p>Powered by Amazon Bedrock (Claude) with Safety Features</p>
+        </div>
+
+        <div class="config-header" id="configHeader" onclick="toggleConfig()">
+            <span style="font-weight: 600;">⚙️ API Configuration</span>
+            <span id="configToggle">▼</span>
+        </div>
+
+        <div class="config-section" id="configSection">
+            <div id="configStatus"></div>
+            
+            <label class="config-label">Your Email Address *</label>
+            <input 
+                type="email" 
+                id="userEmail" 
+                class="config-input" 
+                placeholder="your-email@example.com"
+                required
+                value="">
+            <small style="color: #6c757d; font-size: 12px; display: block; margin-top: -10px; margin-bottom: 15px;">
+                Used for action logging and notifications
+            </small>
+            
+            <label class="config-label">API Gateway Endpoint URL</label>
+            <input 
+                type="text" 
+                id="apiEndpoint" 
+                class="config-input" 
+                placeholder="https://your-api.execute-api.us-east-1.amazonaws.com/prod/manage"
+                value="">
+            
+            <label class="config-label">API Key (Optional)</label>
+            <input 
+                type="password" 
+                id="apiKey" 
+                class="config-input" 
+                placeholder="Enter API key if required"
+                value="">
+        </div>
+
+        <div class="chat-container" id="chatContainer">
+            <div class="welcome-message">
+                <h2>Welcome to EC2 Management Agent!</h2>
+                <p>Manage your EC2 instances, create AMI backups, and set up CloudWatch alarms through AI-powered conversations.</p>
+                
+                <div class="examples">
+                    <div class="example-chip" onclick="sendExample('List all my EC2 instances')">
+                        📋 List instances
+                    </div>
+                    <div class="example-chip" onclick="sendExample('Create AMI backup for i-abc123')">
+                        💾 Create AMI backup
+                    </div>
+                    <div class="example-chip" onclick="sendExample('Create CPU alarm for i-abc123')">
+                        🔔 Create alarm
+                    </div>
+                    <div class="example-chip" onclick="sendExample('Stop instance i-abc123')">
+                        ⏸️ Stop instance
+                    </div>
+                    <div class="example-chip" onclick="sendExample('Show action logs')">
+                        📊 View logs
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-container">
+            <div class="input-wrapper">
+                <input 
+                    type="text" 
+                    id="userInput" 
+                    class="input-field" 
+                    placeholder="Ask about EC2 management..."
+                    onkeypress="handleKeyPress(event)">
+                <button class="send-button" onclick="sendMessage()" id="sendButton">
+                    Send
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration - Replace these values or leave empty for user configuration
+        const CONFIG = {
+            API_ENDPOINT: '',  // Set to your API Gateway URL or leave empty
+            API_KEY_REQUIRED: false  // Set to true if API key is required
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initializeApp();
+        });
+
+        function initializeApp() {
+            const apiEndpointInput = document.getElementById('apiEndpoint');
+            const userEmailInput = document.getElementById('userEmail');
+            const configSection = document.getElementById('configSection');
+            const statusDiv = document.getElementById('configStatus');
+
+            // If API endpoint is pre-configured, set it and disable the field
+            if (CONFIG.API_ENDPOINT) {
+                apiEndpointInput.value = CONFIG.API_ENDPOINT;
+                apiEndpointInput.disabled = true;
+                
+                statusDiv.className = 'config-status status-info';
+                statusDiv.textContent = '✓ API endpoint pre-configured. Please enter your email.';
+                
+                // Don't collapse - need email input
+                configSection.classList.remove('collapsed');
+            } else {
+                // Load saved configuration from memory
+                const savedConfig = getSavedConfig();
+                
+                if (savedConfig.endpoint) apiEndpointInput.value = savedConfig.endpoint;
+                if (savedConfig.apiKey) document.getElementById('apiKey').value = savedConfig.apiKey;
+                if (savedConfig.email) userEmailInput.value = savedConfig.email;
+            }
+
+            // Add event listeners for configuration changes
+            apiEndpointInput.addEventListener('change', saveConfig);
+            document.getElementById('apiKey').addEventListener('change', saveConfig);
+            userEmailInput.addEventListener('change', saveConfig);
+        }
+
+        // In-memory storage for configuration
+        let configStorage = {
+            endpoint: '',
+            apiKey: '',
+            email: ''
+        };
+
+        function getSavedConfig() {
+            return configStorage;
+        }
+
+        function saveConfig() {
+            const endpoint = document.getElementById('apiEndpoint').value.trim();
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const email = document.getElementById('userEmail').value.trim();
+            
+            // Save to memory
+            if (!document.getElementById('apiEndpoint').disabled) {
+                configStorage.endpoint = endpoint;
+            }
+            configStorage.apiKey = apiKey;
+            configStorage.email = email;
+            
+            // Show success message
+            const statusDiv = document.getElementById('configStatus');
+            statusDiv.className = 'config-status status-success';
+            statusDiv.textContent = '✓ Configuration saved!';
+            
+            setTimeout(() => {
+                if (statusDiv.textContent === '✓ Configuration saved!') {
+                    statusDiv.textContent = '';
+                }
+            }, 3000);
+        }
+
+        function toggleConfig() {
+            const configSection = document.getElementById('configSection');
+            const toggleIcon = document.getElementById('configToggle');
+            
+            if (configSection.classList.contains('collapsed')) {
+                configSection.classList.remove('collapsed');
+                toggleIcon.textContent = '▼';
+            } else {
+                configSection.classList.add('collapsed');
+                toggleIcon.textContent = '▶';
+            }
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function sendExample(text) {
+            document.getElementById('userInput').value = text;
+            sendMessage();
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('userInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+
+            const endpoint = document.getElementById('apiEndpoint').value.trim();
+            
+            if (!endpoint) {
+                showError('Please configure API endpoint');
+                return;
+            }
+
+            input.value = '';
+            
+            const sendButton = document.getElementById('sendButton');
+            sendButton.disabled = true;
+            
+            const welcomeMsg = document.querySelector('.welcome-message');
+            if (welcomeMsg) welcomeMsg.remove();
+
+            addMessage(message, 'user');
+
+            const loadingId = showLoading();
+
+            try {
+                const apiKey = document.getElementById('apiKey').value.trim();
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+                
+                if (apiKey) {
+                    headers['x-api-key'] = apiKey;
+                }
+
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({ query: message })
+                });
+
+                removeLoading(loadingId);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                
+                let assistantMessage;
+                if (data.body) {
+                    const bodyData = typeof data.body === 'string' ? JSON.parse(data.body) : data.body;
+                    assistantMessage = bodyData.response || bodyData.message || 'No response';
+                } else {
+                    assistantMessage = data.response || data.message || 'No response';
+                }
+
+                addMessage(assistantMessage, 'assistant');
+
+            } catch (error) {
+                removeLoading(loadingId);
+                addMessage(`Error: ${error.message}`, 'assistant', true);
+                console.error('Error:', error);
+            } finally {
+                sendButton.disabled = false;
+            }
+        }
+
+        function addMessage(text, sender, isError = false) {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            
+            if (isError) {
+                contentDiv.style.background = '#f8d7da';
+                contentDiv.style.color = '#721c24';
+            }
+            
+            contentDiv.innerHTML = formatMessage(text);
+            
+            const timeDiv = document.createElement('div');
+            timeDiv.className = 'message-time';
+            timeDiv.textContent = new Date().toLocaleTimeString();
+            
+            contentDiv.appendChild(timeDiv);
+            messageDiv.appendChild(contentDiv);
+            chatContainer.appendChild(messageDiv);
+            
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function formatMessage(text) {
+            let formatted = text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\n/g, '<br>')
+                .replace(/(\d+\.\s)/g, '<br>$1');
+            
+            return formatted;
+        }
+
+        function showLoading() {
+            const chatContainer = document.getElementById('chatContainer');
+            const loadingDiv = document.createElement('div');
+            const loadingId = 'loading-' + Date.now();
+            loadingDiv.id = loadingId;
+            loadingDiv.className = 'message assistant';
+            
+            loadingDiv.innerHTML = `
+                <div class="message-content">
+                    <div class="loading">
+                        <div class="loading-dot"></div>
+                        <div class="loading-dot"></div>
+                        <div class="loading-dot"></div>
+                    </div>
+                </div>
+            `;
+            
+            chatContainer.appendChild(loadingDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            return loadingId;
+        }
+
+        function removeLoading(loadingId) {
+            const loadingDiv = document.getElementById(loadingId);
+            if (loadingDiv) {
+                loadingDiv.remove();
+            }
+        }
+
+        function showError(message) {
+            const statusDiv = document.getElementById('configStatus');
+            statusDiv.className = 'config-status status-error';
+            statusDiv.textContent = '⚠ ' + message;
+            
+            const configSection = document.getElementById('configSection');
+            if (configSection.classList.contains('collapsed')) {
+                toggleConfig();
+            }
+        }
+    </script>
+</body>
+</html>

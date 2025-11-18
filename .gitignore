@@ -1,0 +1,52 @@
+# Terraform files
+*.tfstate
+*.tfstate.*
+!terraform.tfvars.example
+.terraform/
+.terraform.lock.hcl
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Lambda deployment package
+lambda_deployment.zip
+*.zip
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# AWS
+.aws/
+aws-credentials.json
+
+# Response files
+response.json
+output.json
+
+# Logs
+*.log
+
+# Backup files
+*.backup
+*.bak
