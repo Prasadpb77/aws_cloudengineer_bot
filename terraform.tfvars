@@ -7,7 +7,7 @@ project_name = "ec2-manager"
 environment  = "prod"
 
 # Bedrock Model Configuration
-bedrock_model_id = "anthropic.claude-3-5-sonnet-20241022-v2:0"
+bedrock_model_id = "us.anthropic.claude-3-5-sonnet-20241022-v2:0"
 
 # Budget Configuration
 max_instance_cost_per_hour = "1.0"  # Maximum $1/hour per instance
@@ -24,8 +24,8 @@ max_instance_cost_per_hour = "1.0"  # Maximum $1/hour per instance
 # route53_zone_id    = "Z1234567890ABC"
 
 # Option 3: No custom domain (use CloudFront URL)
-create_hosted_zone = false
-domain_name        = ""
+create_hosted_zone = true
+domain_name        = "awsengineerbot.run.place"
 route53_zone_id    = ""
 
 # CloudFront Configuration

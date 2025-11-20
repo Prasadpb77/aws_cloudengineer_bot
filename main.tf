@@ -129,7 +129,10 @@ resource "aws_iam_role_policy" "ec2_manager_lambda_policy" {
           "bedrock:InvokeModel"
         ]
         Resource = [
-          "arn:aws:bedrock:*::foundation-model/anthropic.claude-3-5-sonnet-*"
+          "arn:aws:bedrock:*::foundation-model/us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+          "arn:aws:bedrock:us-east-1:920013188018:inference-profile/us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+          "arn:aws:bedrock:us-west-2::foundation-model/anthropic.claude-3-5-sonnet-20241022-v2:0",
+          "arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-3-5-sonnet-20241022-v2:0"
         ]
       },
       {
@@ -154,7 +157,7 @@ resource "aws_cloudwatch_log_group" "ec2_manager_logs" {
 # Archive Lambda code
 data "archive_file" "ec2_manager_lambda_zip" {
   type        = "zip"
-  source_dir  = "${path.module}/lambda-ec2"
+  source_dir  = "${path.module}/lambda"
   output_path = "${path.module}/ec2-manager-deployment.zip"
 }
 
@@ -163,7 +166,7 @@ resource "aws_lambda_function" "ec2_manager" {
   filename         = data.archive_file.ec2_manager_lambda_zip.output_path
   function_name    = "${var.project_name}-ec2-manager"
   role            = aws_iam_role.ec2_manager_lambda_role.arn
-  handler         = "lambda_ec2_manager.lambda_handler"
+  handler         = "lambda_handler.lambda_handler"
   source_code_hash = data.archive_file.ec2_manager_lambda_zip.output_base64sha256
   runtime         = "python3.11"
   timeout         = 60

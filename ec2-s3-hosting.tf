@@ -13,7 +13,7 @@ resource "aws_route53_zone" "main" {
 
 # S3 Bucket
 resource "aws_s3_bucket" "ec2_frontend" {
-  bucket = "${var.project_name}-frontend-${data.aws_caller_identity.current.account_id}"
+  bucket = var.domain_name
 
   tags = merge(
     {
@@ -82,7 +82,7 @@ resource "aws_s3_bucket_policy" "ec2_frontend" {
 
 # Generate and upload HTML
 locals {
-  index_html_template = file("${path.module}/frontend-ec2/index.html")
+  index_html_template = file("${path.module}/frontend/index.html")
   
   index_html_content = replace(
     replace(
@@ -170,7 +170,7 @@ resource "aws_cloudfront_distribution" "ec2_frontend" {
   # Use ACM certificate if custom domain, otherwise default CloudFront cert
   viewer_certificate {
     cloudfront_default_certificate = var.domain_name == ""
-    acm_certificate_arn            = var.domain_name != "" ? null : null  # Add ACM cert ARN if you have one
+    acm_certificate_arn            = "arn:aws:acm:us-east-1:920013188018:certificate/4f16b957-3ca3-4498-93aa-bf200eed9fc5"
     ssl_support_method             = var.domain_name != "" ? "sni-only" : null
     minimum_protocol_version       = var.domain_name != "" ? "TLSv1.2_2021" : null
   }
