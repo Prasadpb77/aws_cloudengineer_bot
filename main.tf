@@ -130,9 +130,8 @@ resource "aws_iam_role_policy" "ec2_manager_lambda_policy" {
         ]
         Resource = [
           "arn:aws:bedrock:*::foundation-model/us.anthropic.claude-3-5-sonnet-20241022-v2:0",
-          "arn:aws:bedrock:us-east-1:920013188018:inference-profile/us.anthropic.claude-3-5-sonnet-20241022-v2:0",
-          "arn:aws:bedrock:us-west-2::foundation-model/anthropic.claude-3-5-sonnet-20241022-v2:0",
-          "arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-3-5-sonnet-20241022-v2:0"
+          "arn:aws:bedrock:*:920013188018:inference-profile/us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+          "arn:aws:bedrock:*::foundation-model/anthropic.claude-3-5-sonnet-20241022-v2:0"
         ]
       },
       {
